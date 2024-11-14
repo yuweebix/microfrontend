@@ -1,0 +1,50 @@
+package templates
+
+import "errors"
+import "os"
+import "net/http"
+import "io"
+
+templ header(title string) {
+	<head><title>{ title }</title></head>
+}
+
+templ body(title string) {
+	<body>
+		<h1>{ title }</h1>
+		{ children... }
+	</body>
+}
+
+templ content() {
+	<div id="content">
+		@templ.Raw(getContent())
+	</div>
+}
+
+func getContent() (html string, err error) {
+	url := os.Getenv("CONTENT_SERVICE_URL")
+	if url == "" {
+		err = errors.New("env var CONTENT_SERVICE_URL not found")
+	}
+
+	resp, err := http.Get(url)
+	if err != nil {
+		return
+	}
+	defer resp.Body.Close()
+
+	content, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	return string(content), nil
+}
+
+templ Index() {
+	@header("Host Page")
+	@body("Microfrontend Host Page") {
+		@content()
+	}
+}
