@@ -1,9 +1,12 @@
 package templates
 
-import "errors"
+import "fmt"
 import "os"
-import "net/http"
-import "io"
+
+templ scripts() {
+	<script src="https://unpkg.com/htmx.org@2.0.3"></script>
+	<meta name="htmx-config" content='{"selfRequestsOnly":false}'/>
+}
 
 templ header(title string) {
 	<head><title>{ title }</title></head>
@@ -17,32 +20,26 @@ templ body(title string) {
 }
 
 templ content() {
-	<div id="content">
-		@templ.Raw(getContent())
-	</div>
+	<div
+		id="content"
+		hx-trigger="load once"
+		hx-swap="innerHTML"
+		hx-target="this"
+		hx-get={ getContentURL() }
+	></div>
 }
 
-func getContent() (html string, err error) {
+func getContentURL() (html string, err error) {
 	url := os.Getenv("CONTENT_SERVICE_URL")
 	if url == "" {
-		err = errors.New("env var CONTENT_SERVICE_URL not found")
+		return "", fmt.Errorf("env var CONTENT_SERVICE_URL not found")
 	}
 
-	resp, err := http.Get(url)
-	if err != nil {
-		return
-	}
-	defer resp.Body.Close()
-
-	content, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return
-	}
-
-	return string(content), nil
+	return string(templ.URL(url)), nil
 }
 
 templ Index() {
+	@scripts()
 	@header("Host Page")
 	@body("Microfrontend Host Page") {
 		@content()
