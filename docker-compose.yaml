@@ -1,19 +1,19 @@
 services:
   host:
-    build: ./host
+    build: ./frontend/host
     ports:
-      - "8080:8080"  
+      - "8080:8080"
     depends_on:
-      - content  
+      - content
     environment:
-      - CONTENT_SERVICE_URL=http://localhost:8081  
+      - CONTENT_SERVICE_URL=http://localhost:8081
     networks:
       - frontend
 
   content:
-    build: ./content
+    build: ./frontend/content
     ports:
-      - "8081:8081" 
+      - "8081:8081"
     networks:
       - frontend
 
