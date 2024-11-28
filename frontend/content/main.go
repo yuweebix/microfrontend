@@ -1,10 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
-	"github.com/a-h/templ"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
 
@@ -15,7 +15,7 @@ func main() {
 	r := chi.NewRouter()
 
 	corsHandler := cors.New(cors.Options{
-		AllowedOrigins:   []string{"*"},
+		AllowedOrigins:   []string{"http://localhost:8080"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"*"},
 		ExposedHeaders:   []string{"*"},
@@ -25,7 +25,22 @@ func main() {
 
 	r.Use(corsHandler.Handler)
 
-	r.Handle("/", templ.Handler(templates.Table(), templ.WithContentType("text/html")))
+	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/event-stream")
+		w.Header().Set("Cache-Control", "no-cache")
+		w.Header().Set("Connection", "close")
+
+		f, ok := w.(http.Flusher)
+		if !ok {
+			http.Error(w, "streaming unsupported", http.StatusInternalServerError)
+		}
+
+		fmt.Fprintf(w, "data: ")
+		templates.Content().Render(r.Context(), w)
+		fmt.Fprintf(w, "\n\n")
+		f.Flush()
+		<-r.Context().Done()
+	})
 
 	log.Fatal(http.ListenAndServe(":8081", r))
 }
